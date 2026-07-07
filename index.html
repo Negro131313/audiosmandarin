@@ -145,7 +145,7 @@ fetch("manifest.json")
     lista=data;
     document.getElementById("estado").innerHTML=
         "JSON cargado correctamente.<br>Audios encontrados: "+lista.length;
-    console.log(lista);
+    console.log("Audios cargados:", lista);
     mezclar();
 })
 .catch(err=>{
@@ -168,10 +168,11 @@ function reproducir(){
 
     let archivo=lista[indice];
 
+    // Muestra el progreso sin arruinar la respuesta revelando el nombre del archivo
     document.getElementById("estado").innerHTML=
-        "Intentando reproducir:<br>"+archivo;
+        "Cargando audio... <br>Progreso: " + (indice + 1) + " / " + lista.length;
 
-    console.log("Reproduciendo:",archivo);
+    console.log("Reproduciendo para debug:", archivo); // Solo visible en la consola de desarrollador
 
     if(audio) {
         audio.pause(); // Detiene el audio anterior si seguía sonando
@@ -181,18 +182,19 @@ function reproducir(){
 
     audio.oncanplay=function(){
         document.getElementById("estado").innerHTML=
-        "Audio cargado correctamente.<br>"+archivo;
+        "Audio listo. ¡Escucha con atención!<br>Progreso: " + (indice + 1) + " / " + lista.length;
     }
 
     audio.onerror=function(){
+        // Aquí sí se deja visible el nombre por si necesitas saber qué archivo específico falló
         document.getElementById("estado").innerHTML=
-        "<span style='color:#e74c3c'>No pudo cargarse el audio.</span><br>"+archivo;
-        alert("No se pudo abrir:\n"+archivo);
+        "<span style='color:#e74c3c'>No pudo cargarse el audio.</span><br> Archivo roto: " + archivo;
+        alert("No se pudo abrir:\n" + archivo);
     }
 
     audio.play().catch(e=>{
         document.getElementById("estado").innerHTML=
-        "<span style='color:#e74c3c'>Error al reproducir:</span><br>"+e;
+        "<span style='color:#e74c3c'>Error al reproducir:</span><br>" + e;
         console.error(e);
     });
 }
@@ -215,12 +217,17 @@ function comprobar(){
             mezclar();
         }
     }else{
+        // Revela la respuesta correcta únicamente si fallas
         contenedorResultado.innerHTML=
         "<span class='incorrecto'>❌ Incorrecto</span><br><small style='font-size:16px; color:#555;'>Era: "+correcto+"</small>";
     }
 
+    // Actualiza el texto inferior para el próximo intento
+    document.getElementById("estado").innerHTML=
+        "Listo para el siguiente audio.<br>Progreso: " + (indice + 1) + " / " + lista.length;
+
     inputRespuesta.value="";
-    inputRespuesta.focus(); // Mantiene el cursor listo para el siguiente intento
+    inputRespuesta.focus(); // Devuelve el cursor automáticamente al cuadro para seguir escribiendo
 }
 
 document.getElementById("respuesta").addEventListener("keydown",function(e){
