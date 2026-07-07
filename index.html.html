@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>Práctica de Audios Chinos</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background-color: #eef2f5; /* Color de fondo suave y no saturado */
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Contenedor central para agrupar todo visualmente */
+.contenedor-practica {
+    background: #ffffff;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    max-width: 460px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+h2 {
+    color: #333333;
+    font-size: 22px;
+    margin-top: 0;
+    margin-bottom: 25px;
+}
+
+#respuesta {
+    font-size: 24px;
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+    border: 2px solid #ccd6dd;
+    border-radius: 6px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+#respuesta:focus {
+    border-color: #4a90e2; /* Destaca el borde al escribir */
+}
+
+button {
+    font-size: 18px;
+    padding: 12px 24px;
+    margin: 15px 5px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+/* Botón de reproducir (estilo más llamativo pero suave) */
+.btn-reproducir {
+    background-color: #4a90e2;
+    color: white;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.btn-reproducir:hover {
+    background-color: #357abd;
+}
+
+/* Botón de comprobar */
+.btn-comprobar {
+    background-color: #2ecc71;
+    color: white;
+    padding: 10px 30px;
+}
+
+.btn-comprobar:hover {
+    background-color: #27ae60;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+#resultado {
+    font-size: 22px;
+    font-weight: bold;
+    margin-top: 20px;
+    min-height: 30px; /* Evita que el diseño salte al aparecer el texto */
+}
+
+.correcto { color: #2ecc71; }
+.incorrecto { color: #e74c3c; }
+
+#estado {
+    margin-top: 25px;
+    color: #7f8c8d;
+    font-size: 14px;
+    line-height: 1.4;
+    border-top: 1px solid #edf2f7;
+    padding-top: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="contenedor-practica">
+
+    <h2>Escucha el audio y escribe el nombre del archivo</h2>
+
+    <button class="btn-reproducir" onclick="reproducir()">▶ Reproducir Audio</button>
+
+    <input id="respuesta" autocomplete="off" placeholder="Escribe aquí...">
+
+    <button class="btn-comprobar" onclick="comprobar()">Comprobar</button>
+
+    <div id="resultado"></div>
+
+    <div id="estado">Cargando configuración...</div>
+
+</div>
+
+<script>
+
+let lista=[];
+let indice=0;
+let audio=null;
+
+fetch("manifest.json")
+.then(r=>{
+    if(!r.ok){
+        throw new Error("No se encontró manifest.json");
+    }
+    return r.json();
+})
+.then(data=>{
+    lista=data;
+    document.getElementById("estado").innerHTML=
+        "JSON cargado correctamente.<br>Audios encontrados: "+lista.length;
+    console.log(lista);
+    mezclar();
+})
+.catch(err=>{
+    document.getElementById("estado").innerHTML=
+        "<span style='color:#e74c3c'>ERROR cargando manifest.json</span><br>"+err;
+});
+
+function mezclar(){
+    for(let i=lista.length-1;i>0;i--){
+        let j=Math.floor(Math.random()*(i+1));
+        [lista[i],lista[j]]=[lista[j],lista[i]];
+    }
+}
+
+function reproducir(){
+    if(lista.length==0){
+        alert("No se cargó el JSON.");
+        return;
+    }
+
+    let archivo=lista[indice];
+
+    document.getElementById("estado").innerHTML=
+        "Intentando reproducir:<br>"+archivo;
+
+    console.log("Reproduciendo:",archivo);
+
+    if(audio) {
+        audio.pause(); // Detiene el audio anterior si seguía sonando
+    }
+
+    audio=new Audio(archivo);
+
+    audio.oncanplay=function(){
+        document.getElementById("estado").innerHTML=
+        "Audio cargado correctamente.<br>"+archivo;
+    }
+
+    audio.onerror=function(){
+        document.getElementById("estado").innerHTML=
+        "<span style='color:#e74c3c'>No pudo cargarse el audio.</span><br>"+archivo;
+        alert("No se pudo abrir:\n"+archivo);
+    }
+
+    audio.play().catch(e=>{
+        document.getElementById("estado").innerHTML=
+        "<span style='color:#e74c3c'>Error al reproducir:</span><br>"+e;
+        console.error(e);
+    });
+}
+
+function comprobar(){
+    if(lista.length==0) return;
+
+    let inputRespuesta = document.getElementById("respuesta");
+    let escrito=inputRespuesta.value.trim();
+    let correcto=lista[indice].replace(/\.[^/.]+$/,"");
+    let contenedorResultado = document.getElementById("resultado");
+
+    if(escrito===correcto){
+        contenedorResultado.innerHTML="<span class='correcto'>✅ ¡Correcto!</span>";
+        indice++;
+
+        if(indice>=lista.length){
+            alert("¡Felicidades! Terminaste todos los audios.");
+            indice=0;
+            mezclar();
+        }
+    }else{
+        contenedorResultado.innerHTML=
+        "<span class='incorrecto'>❌ Incorrecto</span><br><small style='font-size:16px; color:#555;'>Era: "+correcto+"</small>";
+    }
+
+    inputRespuesta.value="";
+    inputRespuesta.focus(); // Mantiene el cursor listo para el siguiente intento
+}
+
+document.getElementById("respuesta").addEventListener("keydown",function(e){
+    if(e.key==="Enter"){
+        comprobar();
+    }
+});
+
+</script>
+
+</body>
+</html>
