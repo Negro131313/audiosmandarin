@@ -107,6 +107,52 @@ button:active {
     border-top: 1px solid #edf2f7;
     padding-top: 15px;
 }
+
+
+@media (max-width:768px){
+
+    .contenedor-practica{
+        width:95%;
+        max-width:none;
+        padding:30px;
+    }
+
+    h2{
+        font-size:32px;
+    }
+
+    #respuesta{
+        font-size:34px;
+        padding:18px;
+    }
+
+    button{
+        font-size:28px;
+        padding:18px;
+    }
+
+    #resultado{
+        font-size:30px;
+    }
+
+    #estado{
+        font-size:22px;
+    }
+
+}
+
+
+    .btn-skip{
+    background:#f39c12;
+    color:white;
+}
+
+.btn-skip:hover{
+    background:#d68910;
+}
+
+
+
 </style>
 </head>
 
@@ -121,6 +167,12 @@ button:active {
     <input id="respuesta" autocomplete="off" placeholder="Escribe aquí...">
 
     <button class="btn-comprobar" onclick="comprobar()">Comprobar</button>
+
+    <button class="btn-skip" onclick="skip()">⏭ Skip</button>
+
+
+
+
 
     <div id="resultado"></div>
 
@@ -235,6 +287,31 @@ document.getElementById("respuesta").addEventListener("keydown",function(e){
         comprobar();
     }
 });
+
+
+function skip(){
+
+    indice++;
+
+    if(indice>=lista.length){
+        indice=0;
+        mezclar();
+    }
+
+    document.getElementById("resultado").innerHTML="";
+
+    document.getElementById("respuesta").value="";
+
+    document.getElementById("estado").innerHTML=
+        "Audio omitido.<br>Progreso: " + (indice + 1) + " / " + lista.length;
+
+    reproducir();
+
+    document.getElementById("respuesta").focus();
+
+}
+
+
 
 </script>
 
