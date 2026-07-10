@@ -183,6 +183,7 @@ button:active {
 <script>
 
 let lista=[];
+let completados=[];
 let indice=0;
 let audio=null;
 
@@ -199,6 +200,7 @@ fetch("manifest.json")
         "JSON cargado correctamente.<br>Audios encontrados: "+lista.length;
     console.log("Audios cargados:", lista);
     mezclar();
+    siguientePendiente();
 })
 .catch(err=>{
     document.getElementById("estado").innerHTML=
@@ -254,32 +256,35 @@ function reproducir(){
 function comprobar(){
     if(lista.length==0) return;
 
-    let inputRespuesta = document.getElementById("respuesta");
+    let inputRespuesta=document.getElementById("respuesta");
     let escrito=inputRespuesta.value.trim();
     let correcto=lista[indice].replace(/\.[^/.]+$/,"");
-    let contenedorResultado = document.getElementById("resultado");
+    let contenedorResultado=document.getElementById("resultado");
 
     if(escrito===correcto){
-        contenedorResultado.innerHTML="<span class='correcto'>✅ ¡Correcto!</span>";
-        indice++;
 
-        if(indice>=lista.length){
-            alert("¡Felicidades! Terminaste todos los audios.");
-            indice=0;
-            mezclar();
+        contenedorResultado.innerHTML="<span class='correcto'>✅ ¡Correcto!</span>";
+
+        while(completados.includes(lista[indice]));
+
+        if(!siguientePendiente()){
+            return;
         }
+
+        reproducir();
+
     }else{
-        // Revela la respuesta correcta únicamente si fallas
+
         contenedorResultado.innerHTML=
         "<span class='incorrecto'>❌ Incorrecto</span><br><small style='font-size:16px; color:#555;'>Era: "+correcto+"</small>";
+
     }
 
-    // Actualiza el texto inferior para el próximo intento
     document.getElementById("estado").innerHTML=
-        "Listo para el siguiente audio.<br>Progreso: " + (indice + 1) + " / " + lista.length;
+        "Completados: " + completados.length + " / " + lista.length;
 
     inputRespuesta.value="";
-    inputRespuesta.focus(); // Devuelve el cursor automáticamente al cuadro para seguir escribiendo
+    inputRespuesta.focus();
 }
 
 document.getElementById("respuesta").addEventListener("keydown",function(e){
@@ -291,24 +296,33 @@ document.getElementById("respuesta").addEventListener("keydown",function(e){
 
 function skip(){
 
-    indice++;
-
-    if(indice>=lista.length){
-        indice=0;
-        mezclar();
+    if(!siguientePendiente()){
+        return;
     }
 
     document.getElementById("resultado").innerHTML="";
-
     document.getElementById("respuesta").value="";
-
-    document.getElementById("estado").innerHTML=
-        "Audio omitido.<br>Progreso: " + (indice + 1) + " / " + lista.length;
 
     reproducir();
 
     document.getElementById("respuesta").focus();
 
+}
+
+function siguientePendiente(){
+
+    if(completados.length===lista.length){
+        document.getElementById("estado").innerHTML=
+        "🎉 ¡Terminaste todos los audios!";
+        alert("¡Felicidades! Terminaste todos los audios.");
+        return false;
+    }
+
+    do{
+        indice=Math.floor(Math.random()*lista.length);
+    }while(completados.includes(indice));
+
+    return true;
 }
 
 
