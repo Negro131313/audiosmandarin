@@ -7,7 +7,7 @@
 <style>
 body {
     font-family: Arial, sans-serif;
-    background-color: #eef2f5; /* Color de fondo suave y no saturado */
+    background-color: #eef2f5; 
     margin: 0;
     padding: 0;
     display: flex;
@@ -16,7 +16,6 @@ body {
     min-height: 100vh;
 }
 
-/* Contenedor central para agrupar todo visualmente */
 .contenedor-practica {
     background: #ffffff;
     padding: 30px 40px;
@@ -48,7 +47,7 @@ h2 {
 }
 
 #respuesta:focus {
-    border-color: #4a90e2; /* Destaca el borde al escribir */
+    border-color: #4a90e2; 
 }
 
 button {
@@ -62,7 +61,6 @@ button {
     transition: background-color 0.2s, transform 0.1s;
 }
 
-/* Botón de reproducir (estilo más llamativo pero suave) */
 .btn-reproducir {
     background-color: #4a90e2;
     color: white;
@@ -74,7 +72,6 @@ button {
     background-color: #357abd;
 }
 
-/* Botón de comprobar */
 .btn-comprobar {
     background-color: #2ecc71;
     color: white;
@@ -85,6 +82,15 @@ button {
     background-color: #27ae60;
 }
 
+.btn-skip{
+    background:#f39c12;
+    color:white;
+}
+
+.btn-skip:hover{
+    background:#d68910;
+}
+
 button:active {
     transform: scale(0.98);
 }
@@ -93,7 +99,7 @@ button:active {
     font-size: 22px;
     font-weight: bold;
     margin-top: 20px;
-    min-height: 30px; /* Evita que el diseño salte al aparecer el texto */
+    min-height: 30px; 
 }
 
 .correcto { color: #2ecc71; }
@@ -108,224 +114,145 @@ button:active {
     padding-top: 15px;
 }
 
-
 @media (max-width:768px){
-
     .contenedor-practica{
         width:95%;
         max-width:none;
         padding:30px;
     }
-
-    h2{
-        font-size:32px;
-    }
-
-    #respuesta{
-        font-size:34px;
-        padding:18px;
-    }
-
-    button{
-        font-size:28px;
-        padding:18px;
-    }
-
-    #resultado{
-        font-size:30px;
-    }
-
-    #estado{
-        font-size:22px;
-    }
-
+    h2{ font-size:32px; }
+    #respuesta{ font-size:34px; padding:18px; }
+    button{ font-size:28px; padding:18px; }
+    #resultado{ font-size:30px; }
+    #estado{ font-size:22px; }
 }
-
-
-    .btn-skip{
-    background:#f39c12;
-    color:white;
-}
-
-.btn-skip:hover{
-    background:#d68910;
-}
-
-
-
 </style>
 </head>
 
 <body>
 
 <div class="contenedor-practica">
-
     <h2>Escucha el audio y escribe el nombre del archivo</h2>
-
     <button class="btn-reproducir" onclick="reproducir()">▶ Reproducir Audio</button>
-
     <input id="respuesta" autocomplete="off" placeholder="Escribe aquí...">
-
     <button class="btn-comprobar" onclick="comprobar()">Comprobar</button>
-
     <button class="btn-skip" onclick="skip()">⏭ Skip</button>
 
-
-
-
-
     <div id="resultado"></div>
-
     <div id="estado">Cargando configuración...</div>
-
 </div>
 
 <script>
+let lista = [];
+let indice = 0; // Ahora solo avanzaremos este índice linealmente tras mezclar la lista
+let audio = null;
 
-let lista=[];
-let completados=[];
-let indice=0;
-let audio=null;
-
+// Cargar el manifiesto
 fetch("manifest.json")
-.then(r=>{
-    if(!r.ok){
-        throw new Error("No se encontró manifest.json");
-    }
+.then(r => {
+    if(!r.ok) throw new Error("No se encontró manifest.json");
     return r.json();
 })
-.then(data=>{
-    lista=data;
-    document.getElementById("estado").innerHTML=
-        "JSON cargado correctamente.<br>Audios encontrados: "+lista.length;
-    console.log("Audios cargados:", lista);
+.then(data => {
+    lista = data;
+    document.getElementById("estado").innerHTML = "JSON cargado correctamente.<br>Audios encontrados: " + lista.length;
     mezclar();
-    siguientePendiente();
+    
+    // Asignar el evento Enter de forma segura una vez que todo cargó
+    document.getElementById("respuesta").addEventListener("keydown", function(e) {
+        if(e.key === "Enter") comprobar();
+    });
 })
-.catch(err=>{
-    document.getElementById("estado").innerHTML=
-        "<span style='color:#e74c3c'>ERROR cargando manifest.json</span><br>"+err;
+.catch(err => {
+    document.getElementById("estado").innerHTML = "<span style='color:#e74c3c'>ERROR cargando manifest.json</span><br>" + err;
 });
 
+// Mezcla de Fisher-Yates (Perfecta para desordenar el array una sola vez)
 function mezclar(){
-    for(let i=lista.length-1;i>0;i--){
-        let j=Math.floor(Math.random()*(i+1));
-        [lista[i],lista[j]]=[lista[j],lista[i]];
+    for(let i = lista.length - 1; i > 0; i--){
+        let j = Math.floor(Math.random() * (i + 1));
+        [lista[i], lista[j]] = [lista[j], lista[i]];
     }
 }
 
 function reproducir(){
-    if(lista.length==0){
-        alert("No se cargó el JSON.");
+    if(lista.length === 0){
+        alert("No se cargó el JSON o la lista está vacía.");
         return;
     }
 
-    let archivo=lista[indice];
+    let archivo = lista[indice];
 
-    // Muestra el progreso sin arruinar la respuesta revelando el nombre del archivo
-    document.getElementById("estado").innerHTML=
-        "Cargando audio... <br>Progreso: " + (indice + 1) + " / " + lista.length;
-
-    console.log("Reproduciendo para debug:", archivo); // Solo visible en la consola de desarrollador
+    document.getElementById("estado").innerHTML = "Cargando audio... <br>Progreso: " + (indice + 1) + " / " + lista.length;
+    console.log("Reproduciendo para debug:", archivo); 
 
     if(audio) {
-        audio.pause(); // Detiene el audio anterior si seguía sonando
+        audio.pause(); 
     }
 
-    audio=new Audio(archivo);
+    audio = new Audio(archivo);
 
-    audio.oncanplay=function(){
-        document.getElementById("estado").innerHTML=
-        "Audio listo. ¡Escucha con atención!<br>Progreso: " + (indice + 1) + " / " + lista.length;
+    audio.oncanplay = function(){
+        document.getElementById("estado").innerHTML = "Audio listo. ¡Escucha con atención!<br>Progreso: " + (indice + 1) + " / " + lista.length;
     }
 
-    audio.onerror=function(){
-        // Aquí sí se deja visible el nombre por si necesitas saber qué archivo específico falló
-        document.getElementById("estado").innerHTML=
-        "<span style='color:#e74c3c'>No pudo cargarse el audio.</span><br> Archivo roto: " + archivo;
+    audio.onerror = function(){
+        document.getElementById("estado").innerHTML = "<span style='color:#e74c3c'>No pudo cargarse el audio.</span><br> Archivo roto: " + archivo;
         alert("No se pudo abrir:\n" + archivo);
     }
 
-    audio.play().catch(e=>{
-        document.getElementById("estado").innerHTML=
-        "<span style='color:#e74c3c'>Error al reproducir:</span><br>" + e;
+    audio.play().catch(e => {
+        document.getElementById("estado").innerHTML = "<span style='color:#e74c3c'>Error al reproducir:</span><br>" + e;
         console.error(e);
     });
 }
 
 function comprobar(){
+    if(lista.length === 0) return;
 
-    if(lista.length==0) return;
+    let inputRespuesta = document.getElementById("respuesta");
+    let escrito = inputRespuesta.value.trim();
+    // Extrae el nombre sin la extensión (.mp3, .wav, etc)
+    let correcto = lista[indice].replace(/\.[^/.]+$/, "");
+    let contenedorResultado = document.getElementById("resultado");
 
-    let inputRespuesta=document.getElementById("respuesta");
-    let escrito=inputRespuesta.value.trim();
-    let correcto=lista[indice].replace(/\.[^/.]+$/,"");
-    let contenedorResultado=document.getElementById("resultado");
-
-    if(escrito===correcto){
-
-        contenedorResultado.innerHTML="<span class='correcto'>✅ ¡Correcto!</span>";
-
-        completados.push(indice);
-
-        inputRespuesta.value="";
-
-        if(!siguientePendiente()){
+    if(escrito.toLowerCase() === correcto.toLowerCase()){ // Añadido toLowerCase() para evitar fallos por mayúsculas
+        contenedorResultado.innerHTML = "<span class='correcto'>✅ ¡Correcto!</span>";
+        inputRespuesta.value = "";
+        
+        if(!avanzarSiguiente()){
             return;
         }
-
-        reproducir();
-
-    }else{
-
-        contenedorResultado.innerHTML=
-        "<span class='incorrecto'>❌ Incorrecto</span><br><small>Era: "+correcto+"</small>";
-
+        
+        // Un pequeño delay para que el alumno note que acertó antes de cambiar el audio
+        setTimeout(reproducir, 1000); 
+    } else {
+        contenedorResultado.innerHTML = "<span class='incorrecto'>❌ Incorrecto</span><br><small>Era: " + correcto + "</small>";
     }
 
     inputRespuesta.focus();
 }
 
-document.getElementById("respuesta").addEventListener("keydown",function(e){
-    if(e.key==="Enter"){
-        comprobar();
-    }
-});
-
-
 function skip(){
+    if(!avanzarSiguiente()) return;
 
-    if(!siguientePendiente()){
-        return;
-    }
-
-    document.getElementById("resultado").innerHTML="";
-    document.getElementById("respuesta").value="";
-
+    document.getElementById("resultado").innerHTML = "";
+    document.getElementById("respuesta").value = "";
     reproducir();
-
     document.getElementById("respuesta").focus();
-
 }
 
-function siguientePendiente(){
-
-    if(completados.length===lista.length){
-        document.getElementById("estado").innerHTML=
-        "🎉 ¡Terminaste todos los audios!";
+// Nueva función simplificada para pasar al siguiente elemento
+function avanzarSiguiente(){
+    indice++;
+    
+    if(indice >= lista.length){
+        document.getElementById("estado").innerHTML = "🎉 ¡Terminaste todos los audios!";
         alert("¡Felicidades! Terminaste todos los audios.");
         return false;
     }
-
-    do{
-        indice=Math.floor(Math.random()*lista.length);
-    }
-
     return true;
 }
-
-
-
 </script>
 
 </body>
