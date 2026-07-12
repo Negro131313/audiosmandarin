@@ -254,6 +254,7 @@ function reproducir(){
 }
 
 function comprobar(){
+
     if(lista.length==0) return;
 
     let inputRespuesta=document.getElementById("respuesta");
@@ -265,7 +266,9 @@ function comprobar(){
 
         contenedorResultado.innerHTML="<span class='correcto'>✅ ¡Correcto!</span>";
 
-        while(completados.includes(lista[indice]));
+        completados.push(indice);
+
+        inputRespuesta.value="";
 
         if(!siguientePendiente()){
             return;
@@ -276,14 +279,10 @@ function comprobar(){
     }else{
 
         contenedorResultado.innerHTML=
-        "<span class='incorrecto'>❌ Incorrecto</span><br><small style='font-size:16px; color:#555;'>Era: "+correcto+"</small>";
+        "<span class='incorrecto'>❌ Incorrecto</span><br><small>Era: "+correcto+"</small>";
 
     }
 
-    document.getElementById("estado").innerHTML=
-        "Completados: " + completados.length + " / " + lista.length;
-
-    inputRespuesta.value="";
     inputRespuesta.focus();
 }
 
@@ -320,7 +319,7 @@ function siguientePendiente(){
 
     do{
         indice=Math.floor(Math.random()*lista.length);
-    }while(completados.includes(indice));
+    }
 
     return true;
 }
