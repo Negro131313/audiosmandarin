@@ -144,8 +144,15 @@ button:active {
 
 <script>
 let lista = [];
-let indice = 0; // Ahora solo avanzaremos este índice linealmente tras mezclar la lista
+let completados = []; // Guardará los nombres de los archivos ya acertados
+let indice = 0;
 let audio = null;
+
+// 1. Intentar recuperar el progreso guardado en el navegador
+const progresoGuardado = localStorage.getItem("audios_completados");
+if (progresoGuardado) {
+    completados = JSON.parse(progresoGuardado);
+}
 
 // Cargar el manifiesto
 fetch("manifest.json")
@@ -155,45 +162,64 @@ fetch("manifest.json")
 })
 .then(data => {
     lista = data;
-    document.getElementById("estado").innerHTML = "JSON cargado correctamente.<br>Audios encontrados: " + lista.length;
-    mezclar();
     
-    // Asignar el evento Enter de forma segura una vez que todo cargó
+    // Asignar el evento Enter de forma segura
     document.getElementById("respuesta").addEventListener("keydown", function(e) {
         if(e.key === "Enter") comprobar();
     });
+
+    // Buscar el primer audio disponible que no haya sido completado antes
+    if (buscarSiguientePendiente()) {
+        actualizarMarcador("¡Progreso recuperado!");
+    }
 })
 .catch(err => {
     document.getElementById("estado").innerHTML = "<span style='color:#e74c3c'>ERROR cargando manifest.json</span><br>" + err;
 });
 
-// Mezcla de Fisher-Yates (Perfecta para desordenar el array una sola vez)
-function mezclar(){
-    for(let i = lista.length - 1; i > 0; i--){
-        let j = Math.floor(Math.random() * (i + 1));
-        [lista[i], lista[j]] = [lista[j], lista[i]];
+// Busca un audio que no esté en la lista de completados
+function buscarSiguientePendiente() {
+    // Si ya completamos todos los que vienen en el JSON
+    if (completados.length >= lista.length) {
+        document.getElementById("estado").innerHTML = "🎉 ¡Terminaste todos los audios de la lista!";
+        document.getElementById("resultado").innerHTML = "<button onclick='reiniciarProgreso()' style='background:#7f8c8d; color:white; font-size:16px;'>Reiniciar todo el progreso</button>";
+        return false;
     }
+
+    // Creamos una lista con los índices que aún no han sido completados
+    let pendientes = [];
+    for (let i = 0; i < lista.length; i++) {
+        if (!completados.includes(lista[i])) {
+            pendientes.push(i);
+        }
+    }
+
+    // Seleccionamos uno al azar de los que quedan pendientes
+    let indiceAleatorio = Math.floor(Math.random() * pendientes.length);
+    indice = pendientes[indiceAleatorio];
+    return true;
 }
 
-function reproducir(){
-    if(lista.length === 0){
-        alert("No se cargó el JSON o la lista está vacía.");
-        return;
+function actualizarMarcador(mensajeAdicional = "") {
+    let texto = "Progreso de estudio: " + completados.length + " / " + lista.length;
+    if (mensajeAdicional) {
+        texto += "<br><small style='color:#4a90e2'>" + mensajeAdicional + "</small>";
     }
+    document.getElementById("estado").innerHTML = texto;
+}
+
+function reproducir() {
+    if(lista.length === 0) return;
 
     let archivo = lista[indice];
-
-    document.getElementById("estado").innerHTML = "Cargando audio... <br>Progreso: " + (indice + 1) + " / " + lista.length;
+    actualizarMarcador("Cargando audio...");
     console.log("Reproduciendo para debug:", archivo); 
 
-    if(audio) {
-        audio.pause(); 
-    }
-
+    if(audio) { audio.pause(); }
     audio = new Audio(archivo);
 
     audio.oncanplay = function(){
-        document.getElementById("estado").innerHTML = "Audio listo. ¡Escucha con atención!<br>Progreso: " + (indice + 1) + " / " + lista.length;
+        actualizarMarcador("¡Audio listo! Escucha con atención.");
     }
 
     audio.onerror = function(){
@@ -207,24 +233,30 @@ function reproducir(){
     });
 }
 
-function comprobar(){
+function comprobar() {
     if(lista.length === 0) return;
 
     let inputRespuesta = document.getElementById("respuesta");
     let escrito = inputRespuesta.value.trim();
-    // Extrae el nombre sin la extensión (.mp3, .wav, etc)
-    let correcto = lista[indice].replace(/\.[^/.]+$/, "");
+    let archivoActual = lista[indice];
+    let correcto = archivoActual.replace(/\.[^/.]+$/, "");
     let contenedorResultado = document.getElementById("resultado");
 
-    if(escrito.toLowerCase() === correcto.toLowerCase()){ // Añadido toLowerCase() para evitar fallos por mayúsculas
+    if(escrito.toLowerCase() === correcto.toLowerCase()){ 
         contenedorResultado.innerHTML = "<span class='correcto'>✅ ¡Correcto!</span>";
         inputRespuesta.value = "";
         
-        if(!avanzarSiguiente()){
+        // Registrar en la lista de completados si no estaba ya ahí
+        if (!completados.includes(archivoActual)) {
+            completados.push(archivoActual);
+            // ¡Aquí guardamos el progreso en el navegador!
+            localStorage.setItem("audios_completados", JSON.stringify(completados));
+        }
+        
+        if(!buscarSiguientePendiente()){
             return;
         }
         
-        // Un pequeño delay para que el alumno note que acertó antes de cambiar el audio
         setTimeout(reproducir, 1000); 
     } else {
         contenedorResultado.innerHTML = "<span class='incorrecto'>❌ Incorrecto</span><br><small>Era: " + correcto + "</small>";
@@ -233,8 +265,9 @@ function comprobar(){
     inputRespuesta.focus();
 }
 
-function skip(){
-    if(!avanzarSiguiente()) return;
+function skip() {
+    // El skip solo busca otro pendiente al azar, sin guardar nada en completados
+    if(!buscarSiguientePendiente()) return;
 
     document.getElementById("resultado").innerHTML = "";
     document.getElementById("respuesta").value = "";
@@ -242,16 +275,15 @@ function skip(){
     document.getElementById("respuesta").focus();
 }
 
-// Nueva función simplificada para pasar al siguiente elemento
-function avanzarSiguiente(){
-    indice++;
-    
-    if(indice >= lista.length){
-        document.getElementById("estado").innerHTML = "🎉 ¡Terminaste todos los audios!";
-        alert("¡Felicidades! Terminaste todos los audios.");
-        return false;
+// Por si el usuario quiere volver a empezar de cero algún día
+function reiniciarProgreso() {
+    if (confirm("¿Seguro que quieres borrar tu progreso y empezar de cero?")) {
+        localStorage.removeItem("audios_completados");
+        completados = [];
+        document.getElementById("resultado").innerHTML = "";
+        buscarSiguientePendiente();
+        reproducir();
     }
-    return true;
 }
 </script>
 
